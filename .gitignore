@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+*$py.class
+static/uploads/*
+.env
+.DS_Store

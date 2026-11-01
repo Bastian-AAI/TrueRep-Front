@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrueRep</title>
+    <link href="{{ url_for('static', filename='css/index.css') }}" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+<div class="app-container">
+    <header class="app-header">
+        <div class="brand-group">
+            <span class="app-title">TrueRep</span>
+            <span class="brand-divider" aria-hidden="true"></span>
+            <span class="app-subtitle">Analizador Biomecánico &amp; Contador de Repeticiones</span>
+        </div>
+        <div class="step-indicator">
+            <span id="badge-view-1" class="step-badge active">1. Configuración</span>
+            <span id="badge-view-2" class="step-badge">2. Procesamiento</span>
+            <span id="badge-view-3" class="step-badge">3. Dashboard</span>
+        </div>
+    </header>
+
+    <!-- VISTA 1: Selector de Ejercicio, Nivel de Exigencia, Dropzone y Botón de Acción -->
+    <section id="view-1" class="view-card">
+        <div id="error-box" class="error-banner hidden"></div>
+
+        <label class="section-label">1. Selecciona el ejercicio (vista de perfil)</label>
+        <div class="exercise-selector">
+            <button type="button" class="exercise-option selected" data-exercise="squat" onclick="selectExercise('squat')">
+                <strong>Sentadilla (Squat)</strong>
+                <span class="card-desc">Control de profundidad, inclinación de torso y extensión</span>
+                <div id="chips-squat" class="card-chips">
+                    <span class="metric-chip">Rodilla &le;95&deg;</span>
+                    <span class="metric-chip">Torso &le;45&deg;</span>
+                    <span class="metric-chip">Extensión &ge;160&deg;</span>
+                </div>
+            </button>
+            <button type="button" class="exercise-option" data-exercise="pushup" onclick="selectExercise('pushup')">
+                <strong>Flexiones (Push-up)</strong>
+                <span class="card-desc">Flexión de codo, alineación corporal y extensión</span>
+                <div id="chips-pushup" class="card-chips">
+                    <span class="metric-chip">Codo &le;95&deg;</span>
+                    <span class="metric-chip">Cuerpo &ge;155&deg;</span>
+                    <span class="metric-chip">Extensión &ge;155&deg;</span>
+                </div>
+            </button>
+        </div>
+
+        <label class="section-label">2. Selecciona el nivel de exigencia</label>
+        <div class="exercise-selector">
+            <button type="button" class="exercise-option level-option selected" data-level="standard" onclick="selectLevel('standard')">
+                <strong>Estándar Deportivo</strong>
+                <span class="card-desc">Rango anatómico funcional para entrenamiento general</span>
+            </button>
+            <button type="button" class="exercise-option level-option" data-level="strict" onclick="selectLevel('strict')">
+                <strong>Estricto de Competencia</strong>
+                <span class="card-desc">Profundidad máxima y bloqueo articular riguroso</span>
+            </button>
+        </div>
+
+        <label class="section-label">3. Sube el video del ejercicio</label>
+        <div id="dropzone" class="dropzone" onclick="document.getElementById('video-input').click()">
+            <input id="video-input" type="file" accept=".mp4,.mov,.avi,.webm,video/*" class="hidden" onchange="onFileSelected(this.files[0])">
+            <div class="dropzone-title">Arrastra y suelta un video aquí o haz clic para seleccionar</div>
+            <div class="dropzone-sub">Formatos permitidos: MP4, MOV, AVI, WEBM (grabado de perfil)</div>
+            <div id="selected-file-label" class="file-selected hidden"></div>
+        </div>
+
+        <button id="start-btn" type="button" class="primary-btn" disabled onclick="startAnalysis()">
+            Iniciar análisis
+        </button>
+    </section>
+
+    <!-- VISTA 2: Procesamiento con progreso entre estados -->
+    <section id="view-2" class="view-card hidden">
+        <div class="progress-wrapper">
+            <h3>Procesando video</h3>
+            <div class="progress-bar-track">
+                <div id="progress-fill" class="progress-bar-fill"></div>
+            </div>
+            <div id="progress-msg" class="progress-status-msg">Iniciando análisis...</div>
+
+            <ul class="stage-list">
+                <li id="st-upload" class="stage-item active">
+                    <span>1. Recepción del video</span>
+                    <span class="stage-state">En curso</span>
+                </li>
+                <li id="st-pose" class="stage-item">
+                    <span>2. Extracción de articulaciones (YOLO-Pose)</span>
+                    <span class="stage-state">Pendiente</span>
+                </li>
+                <li id="st-rules" class="stage-item">
+                    <span>3. Evaluación con motor de reglas heurísticas</span>
+                    <span class="stage-state">Pendiente</span>
+                </li>
+                <li id="st-render" class="stage-item">
+                    <span>4. Renderizado de esqueleto y diagnóstico</span>
+                    <span class="stage-state">Pendiente</span>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- VISTA 3: Dashboard con resultados, reproductor y diagnóstico biomecánico -->
+    <section id="view-3" class="view-card hidden">
+        <div class="dashboard-top">
+            <div>
+                <span class="section-label" style="margin-bottom:2px;" id="res-exercise-name">Ejercicio</span>
+                <h3>Resultados y Diagnóstico Biomecánico</h3>
+            </div>
+            <button type="button" class="secondary-btn" onclick="resetToView1()">Nuevo análisis</button>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-box">
+                <div class="stat-label">Repeticiones Válidas (Contadas)</div>
+                <div id="res-valid-reps" class="stat-value valid">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Intentos Totales</div>
+                <div id="res-total-reps" class="stat-value">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">No Contadas (Fallo Técnico)</div>
+                <div id="res-invalid-reps" class="stat-value invalid">0</div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Reproductor de video con esqueleto y Línea de tiempo interactiva con marcas clicables -->
+            <div class="video-box">
+                <video id="result-video" class="video-player" controls playsinline></video>
+
+                <div class="timeline-container">
+                    <div class="timeline-header">
+                        <span class="timeline-title">Línea de tiempo de repeticiones</span>
+                        <span id="timeline-time-label" class="timeline-time">0.0s / 0.0s</span>
+                    </div>
+                    <div id="timeline-track" class="timeline-track" onclick="onTimelineTrackClick(event)">
+                        <div id="timeline-progress" class="timeline-progress"></div>
+                        <div id="timeline-segments" class="timeline-segments"></div>
+                        <div id="timeline-playhead" class="timeline-playhead"></div>
+                        <div id="timeline-markers"></div>
+                    </div>
+                    <div class="timeline-legend">
+                        <span><i class="dot valid"></i>Repetición válida (contada)</span>
+                        <span><i class="dot invalid"></i>Repetición descartada (técnica incorrecta)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Diagnóstico Biomecánico -->
+            <div class="diagnosis-box">
+                <span class="section-label" style="margin-bottom:0;">Diagnóstico Biomecánico</span>
+                <div id="res-summary" class="diagnosis-summary"></div>
+                <div id="rep-list" class="rep-list"></div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+    const UPLOAD_URL = "{{ url_for('upload_video') }}";
+    const STATUS_URL = "{{ url_for('check_status') }}";
+
+    let selectedExercise = 'squat';
+    let selectedLevel = 'standard';
+    let selectedFile = null;
+    let pollTimer = null;
+    let videoDuration = 1;
+
+    function setActiveView(viewNumber) {
+        [1, 2, 3].forEach(n => {
+            document.getElementById('view-' + n).classList.toggle('hidden', n !== viewNumber);
+            document.getElementById('badge-view-' + n).classList.toggle('active', n === viewNumber);
+        });
+    }
+
+    function selectExercise(ex) {
+        selectedExercise = ex;
+        document.querySelectorAll('.exercise-option[data-exercise]').forEach(btn => {
+            btn.classList.toggle('selected', btn.getAttribute('data-exercise') === ex);
+        });
+    }
+
+    function selectLevel(lvl) {
+        if (selectedLevel === lvl) return;
+        selectedLevel = lvl;
+        document.querySelectorAll('.level-option').forEach(btn => {
+            btn.classList.toggle('selected', btn.getAttribute('data-level') === lvl);
+        });
+
+        const chipsSquat = document.getElementById('chips-squat');
+        const chipsPushup = document.getElementById('chips-pushup');
+        chipsSquat.classList.add('text-morphing');
+        chipsPushup.classList.add('text-morphing');
+
+        setTimeout(() => {
+            if (lvl === 'strict') {
+                chipsSquat.innerHTML = `
+                    <span class="metric-chip">Rodilla &le;80&deg;</span>
+                    <span class="metric-chip">Torso &le;35&deg;</span>
+                    <span class="metric-chip">Extensión &ge;165&deg;</span>
+                `;
+                chipsPushup.innerHTML = `
+                    <span class="metric-chip">Codo &le;75&deg;</span>
+                    <span class="metric-chip">Cuerpo &ge;163&deg;</span>
+                    <span class="metric-chip">Extensión &ge;160&deg;</span>
+                `;
+            } else {
+                chipsSquat.innerHTML = `
+                    <span class="metric-chip">Rodilla &le;95&deg;</span>
+                    <span class="metric-chip">Torso &le;45&deg;</span>
+                    <span class="metric-chip">Extensión &ge;160&deg;</span>
+                `;
+                chipsPushup.innerHTML = `
+                    <span class="metric-chip">Codo &le;95&deg;</span>
+                    <span class="metric-chip">Cuerpo &ge;155&deg;</span>
+                    <span class="metric-chip">Extensión &ge;155&deg;</span>
+                `;
+            }
+            chipsSquat.classList.remove('text-morphing');
+            chipsPushup.classList.remove('text-morphing');
+        }, 90);
+    }
+
+    function onFileSelected(file) {
+        if (!file) return;
+        selectedFile = file;
+        const label = document.getElementById('selected-file-label');
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        label.textContent = `Archivo listo: ${file.name} (${sizeMb} MB)`;
+        label.classList.remove('hidden');
+        document.getElementById('start-btn').disabled = false;
+        document.getElementById('error-box').classList.add('hidden');
+    }
+
+    const dz = document.getElementById('dropzone');
+    dz.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dz.classList.add('dragover');
+    });
+    dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+    dz.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dz.classList.remove('dragover');
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            onFileSelected(e.dataTransfer.files[0]);
+        }
+    });
+
+    function updateStageUI(stage, percent, message) {
+        const scaleRatio = Math.max(0.08, Math.min(1, percent / 100));
+        document.getElementById('progress-fill').style.transform = `scaleX(${scaleRatio})`;
+        document.getElementById('progress-msg').textContent = message || 'Procesando...';
+
+        const order = ['upload', 'pose', 'rules', 'render'];
+        const currentIdx = order.indexOf(stage);
+
+        order.forEach((st, idx) => {
+            const li = document.getElementById('st-' + st);
+            const stateSpan = li.querySelector('.stage-state');
+            li.classList.remove('active', 'done');
+            if (stage === 'done' || (currentIdx !== -1 && idx < currentIdx)) {
+                li.classList.add('done');
+                stateSpan.textContent = 'Completado';
+            } else if (idx === currentIdx) {
+                li.classList.add('active');
+                stateSpan.textContent = 'En curso';
+            } else {
+                stateSpan.textContent = 'Pendiente';
+            }
+        });
+    }
+
+    async function startAnalysis() {
+        if (!selectedFile) return;
+        setActiveView(2);
+        updateStageUI('upload', 10, 'Subiendo video al servidor...');
+
+        pollTimer = setInterval(async () => {
+            try {
+                const res = await fetch(STATUS_URL);
+                if (res.ok) {
+                    const st = await res.json();
+                    if (st.stage && st.stage !== 'idle') {
+                        updateStageUI(st.stage, st.percent, st.message);
+                    }
+                }
+            } catch (_) {}
+        }, 600);
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('exercise', selectedExercise);
+        formData.append('level', selectedLevel);
+
+        try {
+            const response = await fetch(UPLOAD_URL, {
+                method: 'POST',
+                body: formData
+            });
+            clearInterval(pollTimer);
+            const data = await response.json();
+
+            if (!response.ok || data.error) {
+                showError(data.error || 'Error procesando el video.');
+                setActiveView(1);
+                return;
+            }
+            renderDashboard(data);
+            setActiveView(3);
+        } catch (err) {
+            clearInterval(pollTimer);
+            showError('No se pudo conectar con el servidor.');
+            setActiveView(1);
+        }
+    }
+
+    function showError(msg) {
+        const box = document.getElementById('error-box');
+        box.textContent = msg;
+        box.classList.remove('hidden');
+    }
+
+    let currentRepetitions = [];
+    let lastActiveRepNum = null;
+
+    function highlightActiveRep(repNumber) {
+        if (repNumber === lastActiveRepNum) return;
+        lastActiveRepNum = repNumber;
+
+        document.querySelectorAll('.rep-item').forEach(el => el.classList.remove('selected'));
+        document.querySelectorAll('.timeline-marker').forEach(el => el.classList.remove('active-marker'));
+        document.querySelectorAll('.timeline-segment').forEach(el => el.classList.remove('active-segment'));
+
+        if (repNumber !== null) {
+            const card = document.getElementById('rep-card-' + repNumber);
+            if (card) {
+                card.classList.add('selected');
+                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            const marker = document.getElementById('timeline-marker-' + repNumber);
+            if (marker) {
+                marker.classList.add('active-marker');
+            }
+            const seg = document.getElementById('timeline-segment-' + repNumber);
+            if (seg) {
+                seg.classList.add('active-segment');
+            }
+        }
+    }
+
+    function renderDashboard(data) {
+        currentRepetitions = data.repeticiones || [];
+        lastActiveRepNum = null;
+
+        const exTitle = data.nivel_nombre
+            ? `${data.ejercicio_nombre} — ${data.nivel_nombre}`
+            : (data.ejercicio_nombre || '');
+        document.getElementById('res-exercise-name').textContent = exTitle;
+        document.getElementById('res-valid-reps').textContent = data.repeticiones_validas;
+        document.getElementById('res-total-reps').textContent = data.intentos_totales;
+        document.getElementById('res-invalid-reps').textContent = data.repeticiones_invalidas;
+        document.getElementById('res-summary').textContent = data.diagnostico_general;
+
+        const video = document.getElementById('result-video');
+        videoDuration = Math.max(data.duracion_video || 1, 0.5);
+        video.src = data.video_url || '';
+        video.load();
+
+        video.onloadedmetadata = () => {
+            if (video.duration && isFinite(video.duration)) {
+                videoDuration = video.duration;
+                renderTimelineMarkers(currentRepetitions);
+            }
+        };
+
+        video.ontimeupdate = () => {
+            const cur = video.currentTime || 0;
+            const dur = videoDuration || 1;
+            const ratio = Math.min(1, Math.max(0, cur / dur));
+            document.getElementById('timeline-progress').style.transform = `scaleX(${ratio})`;
+            document.getElementById('timeline-playhead').style.left = `${(ratio * 100).toFixed(2)}%`;
+            document.getElementById('timeline-time-label').textContent = `${cur.toFixed(1)}s / ${dur.toFixed(1)}s`;
+
+            const activeRep = currentRepetitions.find(r => cur >= r.start_time && cur <= r.end_time);
+            highlightActiveRep(activeRep ? activeRep.numero : null);
+        };
+
+        renderTimelineMarkers(currentRepetitions);
+        renderRepetitionList(currentRepetitions, data.ejercicio);
+    }
+
+    function renderTimelineMarkers(reps) {
+        const segContainer = document.getElementById('timeline-segments');
+        const markerContainer = document.getElementById('timeline-markers');
+        segContainer.innerHTML = '';
+        markerContainer.innerHTML = '';
+
+        reps.forEach((rep) => {
+            const startSec = typeof rep.start_time === 'number' ? rep.start_time : rep.timestamp;
+            const endSec = typeof rep.end_time === 'number' ? rep.end_time : rep.timestamp;
+            const startPct = Math.max(0, Math.min(99, (startSec / videoDuration) * 100));
+            const endPct = Math.max(startPct + 1.5, Math.min(100, (endSec / videoDuration) * 100));
+            const widthPct = Math.max(1.5, endPct - startPct);
+
+            const seg = document.createElement('div');
+            seg.id = 'timeline-segment-' + rep.numero;
+            seg.className = 'timeline-segment ' + (rep.valida ? 'valid' : 'invalid');
+            seg.style.left = startPct.toFixed(2) + '%';
+            seg.style.width = widthPct.toFixed(2) + '%';
+            seg.title = `Reproducir Rep #${rep.numero} (${startSec.toFixed(1)}s – ${endSec.toFixed(1)}s)`;
+            seg.onclick = (e) => {
+                e.stopPropagation();
+                playRepFromStart(rep.numero, startSec);
+            };
+            segContainer.appendChild(seg);
+
+            const pct = Math.min(97, Math.max(3, (rep.timestamp / videoDuration) * 100));
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.id = 'timeline-marker-' + rep.numero;
+            btn.className = 'timeline-marker ' + (rep.valida ? 'valid' : 'invalid');
+            btn.style.left = pct.toFixed(2) + '%';
+            btn.textContent = rep.numero;
+            btn.title = `Ir a máxima flexión Rep #${rep.numero} (${rep.timestamp}s) - ${rep.valida ? 'Válida' : rep.motivo}`;
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                seekToRepInflection(rep.numero, rep.timestamp);
+            };
+            markerContainer.appendChild(btn);
+        });
+    }
+
+    function renderRepetitionList(reps, exercise) {
+        const list = document.getElementById('rep-list');
+        list.innerHTML = '';
+
+        if (reps.length === 0) {
+            list.innerHTML = '<div class="rep-reason">No se detectaron repeticiones en el video.</div>';
+            return;
+        }
+
+        const primaryLabel = exercise === 'squat' ? 'Rodilla' : 'Codo';
+        const postureLabel = exercise === 'squat' ? 'Torso' : 'Cuerpo';
+
+        reps.forEach((rep, idx) => {
+            const item = document.createElement('div');
+            item.className = 'rep-item';
+            item.id = 'rep-card-' + rep.numero;
+            const staggerMs = Math.min(idx * 40, 240);
+            item.style.transitionDelay = `${staggerMs}ms`;
+            setTimeout(() => {
+                item.style.transitionDelay = '0ms';
+            }, staggerMs + 240);
+
+            const startSec = typeof rep.start_time === 'number' ? rep.start_time : rep.timestamp;
+            const endSec = typeof rep.end_time === 'number' ? rep.end_time : rep.timestamp;
+            item.onclick = () => playRepFromStart(rep.numero, startSec);
+
+            const badgeClass = rep.valida ? 'valid' : 'invalid';
+            const badgeText = rep.valida ? 'Contada (+1)' : 'No contada (0)';
+
+            item.innerHTML = `
+                <div class="rep-item-head">
+                    <div class="rep-title-group">
+                        <span class="rep-title">Repetición #${rep.numero}</span>
+                        <span class="rep-interval">${startSec.toFixed(1)}s &ndash; ${endSec.toFixed(1)}s</span>
+                    </div>
+                    <span class="rep-badge ${badgeClass}">${badgeText}</span>
+                </div>
+                <div class="rep-chips">
+                    <span class="metric-chip">${primaryLabel} ${rep.angulo_inflexion}&deg;</span>
+                    <span class="metric-chip">${postureLabel} ${rep.angulo_postura}&deg;</span>
+                    <span class="metric-chip">Extensión ${rep.angulo_extension}&deg;</span>
+                </div>
+                <div class="rep-reason">${rep.motivo}</div>
+            `;
+            list.appendChild(item);
+        });
+    }
+
+    function seekToRepInflection(repNumber, timestamp) {
+        const video = document.getElementById('result-video');
+        video.currentTime = timestamp;
+        video.pause();
+        highlightActiveRep(repNumber);
+    }
+
+    function playRepFromStart(repNumber, startTime) {
+        const video = document.getElementById('result-video');
+        video.currentTime = startTime;
+        highlightActiveRep(repNumber);
+        video.play().catch(() => {});
+    }
+
+    function onTimelineTrackClick(e) {
+        const track = document.getElementById('timeline-track');
+        const rect = track.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        const video = document.getElementById('result-video');
+        video.currentTime = ratio * videoDuration;
+    }
+
+    function resetToView1() {
+        const video = document.getElementById('result-video');
+        video.pause();
+        video.removeAttribute('src');
+        setActiveView(1);
+    }
+</script>
+</body>
+</html>
