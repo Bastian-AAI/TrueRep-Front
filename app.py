@@ -3,7 +3,7 @@ import os
 from flask import Flask
 
 # puerto 7002 es usado para desarrollo en __main__
-IA_SERVER = 'http://127.0.0.1:7002'
+IA_SERVER = os.environ.get('IA_SERVER', 'http://127.0.0.1:7002')
 
 IA_URL = '/ejercicio2/app2-ia/predict'
 IA_STATUS_URL = '/ejercicio2/app2-ia/status'
