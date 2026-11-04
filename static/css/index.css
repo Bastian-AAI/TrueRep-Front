@@ -135,6 +135,18 @@ body {
     margin-bottom: 22px;
 }
 
+/* Grilla de selección de ejercicios: 3 columnas en desktop */
+.exercise-selector.exercise-grid,
+.exercise-selector:has([data-exercise]) {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+/* Selector de nivel de exigencia: garantiza 2 columnas simétricas */
+.exercise-selector.level-grid,
+.exercise-selector:has([data-level]) {
+    grid-template-columns: 1fr 1fr;
+}
+
 .exercise-option {
     display: flex;
     flex-direction: column;
@@ -146,11 +158,18 @@ body {
     background: var(--surface);
     cursor: pointer;
     text-align: left;
+    height: 100%;
+    position: relative;
     transition:
         transform 150ms var(--ease-out),
         border-color 160ms var(--ease-out),
         background-color 160ms var(--ease-out),
         box-shadow 160ms var(--ease-out);
+}
+
+.exercise-option:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 
 .exercise-option:active {
@@ -184,7 +203,9 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-top: 10px;
+    margin-top: auto;
+    padding-top: 10px;
+    width: 100%;
     transition: opacity 160ms var(--ease-out), filter 160ms var(--ease-out);
 }
 
@@ -214,6 +235,39 @@ body {
     background: #ffffff;
     border-color: #d4d4d8;
     color: var(--text);
+}
+
+/* Badge indicador de perspectiva de cámara (Perfil vs Frente) */
+.perspective-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1.5px 7px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    background: #f4f4f5;
+    border: 1px solid #e4e4e7;
+    margin-bottom: 6px;
+}
+
+.perspective-badge.frontal {
+    color: #0369a1;
+    background: #f0f9ff;
+    border-color: #bae6fd;
+}
+
+.exercise-option.selected .perspective-badge {
+    background: #ffffff;
+    border-color: #d4d4d8;
+}
+
+.exercise-option.selected .perspective-badge.frontal {
+    color: #0284c7;
+    background: #e0f2fe;
+    border-color: #7dd3fc;
 }
 
 .dropzone {
@@ -421,11 +475,59 @@ body {
     gap: 20px;
 }
 
-@media (max-width: 720px) {
+/* Breakpoint Tablet / Mobile (<= 768px): Colapso a columna única */
+@media (max-width: 768px) {
     .dashboard-grid,
     .stats-row,
-    .exercise-selector {
+    .exercise-selector,
+    .exercise-selector.exercise-grid,
+    .exercise-selector:has([data-exercise]) {
         grid-template-columns: 1fr;
+    }
+}
+
+/* Breakpoint Móvil Estrecho (<= 480px): Optimización de padding y tipografía */
+@media (max-width: 480px) {
+    body {
+        padding: 16px 12px;
+    }
+
+    .view-card {
+        padding: 18px 14px;
+    }
+
+    .app-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .step-indicator {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .step-badge {
+        padding: 3px 8px;
+        font-size: 0.72rem;
+    }
+
+    .exercise-selector {
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .exercise-option {
+        padding: 14px;
+    }
+
+    .dropzone {
+        padding: 24px 14px;
+        margin-bottom: 18px;
+    }
+
+    .stat-value {
+        font-size: 1.45rem;
     }
 }
 

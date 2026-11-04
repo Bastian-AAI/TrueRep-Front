@@ -9,6 +9,8 @@ from app import app, IA_SERVER, IA_URL, IA_STATUS_URL, IA_VIDEO_URL
 from utils import allowed_file, log_print, cleanup_old_files
 
 API_KEY_HEADER = {'X-API-KEY': 'Secreto_ejercicio2_202608101300'}
+ALLOWED_EXERCISES = ('squat', 'pushup', 'pullup')
+ALLOWED_LEVELS = ('standard', 'strict')
 
 
 @app.route('/')
@@ -29,7 +31,12 @@ def upload_video():
 
         file = request.files['file']
         exercise = request.form.get('exercise', 'squat')
+        if exercise not in ALLOWED_EXERCISES:
+            exercise = 'squat'
+
         level = request.form.get('level', 'standard')
+        if level not in ALLOWED_LEVELS:
+            level = 'standard'
 
         if not file or file.filename == '':
             return jsonify({'error': 'No se seleccionó ningún archivo.'}), 400

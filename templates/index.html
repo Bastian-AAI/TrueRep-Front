@@ -25,8 +25,8 @@
     <section id="view-1" class="view-card">
         <div id="error-box" class="error-banner hidden"></div>
 
-        <label class="section-label">1. Selecciona el ejercicio (vista de perfil)</label>
-        <div class="exercise-selector">
+        <label id="exercise-label" class="section-label">1. Selecciona el ejercicio (vista de perfil)</label>
+        <div class="exercise-selector exercise-grid">
             <button type="button" class="exercise-option selected" data-exercise="squat" onclick="selectExercise('squat')">
                 <strong>Sentadilla (Squat)</strong>
                 <span class="card-desc">Control de profundidad, inclinación de torso y extensión</span>
@@ -43,6 +43,15 @@
                     <span class="metric-chip">Codo &le;95&deg;</span>
                     <span class="metric-chip">Cuerpo &ge;155&deg;</span>
                     <span class="metric-chip">Extensión &ge;155&deg;</span>
+                </div>
+            </button>
+            <button type="button" class="exercise-option" data-exercise="pullup" onclick="selectExercise('pullup')">
+                <strong>Dominadas (Pull-up)</strong>
+                <span class="card-desc">Elevación de barbilla, inclinación de torso y extensión</span>
+                <div id="chips-pullup" class="card-chips">
+                    <span class="metric-chip">Barbilla &gt; Barra</span>
+                    <span class="metric-chip">Torso &le;30&deg;</span>
+                    <span class="metric-chip">Extensión &ge;150&deg;</span>
                 </div>
             </button>
         </div>
@@ -63,7 +72,7 @@
         <div id="dropzone" class="dropzone" onclick="document.getElementById('video-input').click()">
             <input id="video-input" type="file" accept=".mp4,.mov,.avi,.webm,video/*" class="hidden" onchange="onFileSelected(this.files[0])">
             <div class="dropzone-title">Arrastra y suelta un video aquí o haz clic para seleccionar</div>
-            <div class="dropzone-sub">Formatos permitidos: MP4, MOV, AVI, WEBM (grabado de perfil)</div>
+            <div id="dropzone-sub" class="dropzone-sub">Formatos permitidos: MP4, MOV, AVI, WEBM (grabado de perfil)</div>
             <div id="selected-file-label" class="file-selected hidden"></div>
         </div>
 
@@ -182,6 +191,17 @@
         document.querySelectorAll('.exercise-option[data-exercise]').forEach(btn => {
             btn.classList.toggle('selected', btn.getAttribute('data-exercise') === ex);
         });
+
+        const exLabel = document.getElementById('exercise-label');
+        const dzSub = document.getElementById('dropzone-sub');
+
+        if (ex === 'pullup') {
+            if (exLabel) exLabel.textContent = '1. Selecciona el ejercicio (vista frontal)';
+            if (dzSub) dzSub.textContent = 'Formatos permitidos: MP4, MOV, AVI, WEBM (grabado de frente / vista frontal)';
+        } else {
+            if (exLabel) exLabel.textContent = '1. Selecciona el ejercicio (vista de perfil)';
+            if (dzSub) dzSub.textContent = 'Formatos permitidos: MP4, MOV, AVI, WEBM (grabado de perfil)';
+        }
     }
 
     function selectLevel(lvl) {
@@ -193,35 +213,60 @@
 
         const chipsSquat = document.getElementById('chips-squat');
         const chipsPushup = document.getElementById('chips-pushup');
-        chipsSquat.classList.add('text-morphing');
-        chipsPushup.classList.add('text-morphing');
+        const chipsPullup = document.getElementById('chips-pullup');
+        if (chipsSquat) chipsSquat.classList.add('text-morphing');
+        if (chipsPushup) chipsPushup.classList.add('text-morphing');
+        if (chipsPullup) chipsPullup.classList.add('text-morphing');
 
         setTimeout(() => {
             if (lvl === 'strict') {
-                chipsSquat.innerHTML = `
-                    <span class="metric-chip">Rodilla &le;80&deg;</span>
-                    <span class="metric-chip">Torso &le;35&deg;</span>
-                    <span class="metric-chip">Extensión &ge;165&deg;</span>
-                `;
-                chipsPushup.innerHTML = `
-                    <span class="metric-chip">Codo &le;75&deg;</span>
-                    <span class="metric-chip">Cuerpo &ge;163&deg;</span>
-                    <span class="metric-chip">Extensión &ge;160&deg;</span>
-                `;
+                if (chipsSquat) {
+                    chipsSquat.innerHTML = `
+                        <span class="metric-chip">Rodilla &le;80&deg;</span>
+                        <span class="metric-chip">Torso &le;35&deg;</span>
+                        <span class="metric-chip">Extensión &ge;165&deg;</span>
+                    `;
+                }
+                if (chipsPushup) {
+                    chipsPushup.innerHTML = `
+                        <span class="metric-chip">Codo &le;75&deg;</span>
+                        <span class="metric-chip">Cuerpo &ge;163&deg;</span>
+                        <span class="metric-chip">Extensión &ge;160&deg;</span>
+                    `;
+                }
+                if (chipsPullup) {
+                    chipsPullup.innerHTML = `
+                        <span class="metric-chip">Barbilla &ge;2cm</span>
+                        <span class="metric-chip">Torso &le;15&deg;</span>
+                        <span class="metric-chip">Extensión &ge;160&deg;</span>
+                    `;
+                }
             } else {
-                chipsSquat.innerHTML = `
-                    <span class="metric-chip">Rodilla &le;95&deg;</span>
-                    <span class="metric-chip">Torso &le;45&deg;</span>
-                    <span class="metric-chip">Extensión &ge;160&deg;</span>
-                `;
-                chipsPushup.innerHTML = `
-                    <span class="metric-chip">Codo &le;95&deg;</span>
-                    <span class="metric-chip">Cuerpo &ge;155&deg;</span>
-                    <span class="metric-chip">Extensión &ge;155&deg;</span>
-                `;
+                if (chipsSquat) {
+                    chipsSquat.innerHTML = `
+                        <span class="metric-chip">Rodilla &le;95&deg;</span>
+                        <span class="metric-chip">Torso &le;45&deg;</span>
+                        <span class="metric-chip">Extensión &ge;160&deg;</span>
+                    `;
+                }
+                if (chipsPushup) {
+                    chipsPushup.innerHTML = `
+                        <span class="metric-chip">Codo &le;95&deg;</span>
+                        <span class="metric-chip">Cuerpo &ge;155&deg;</span>
+                        <span class="metric-chip">Extensión &ge;155&deg;</span>
+                    `;
+                }
+                if (chipsPullup) {
+                    chipsPullup.innerHTML = `
+                        <span class="metric-chip">Barbilla &gt; Barra</span>
+                        <span class="metric-chip">Torso &le;30&deg;</span>
+                        <span class="metric-chip">Extensión &ge;150&deg;</span>
+                    `;
+                }
             }
-            chipsSquat.classList.remove('text-morphing');
-            chipsPushup.classList.remove('text-morphing');
+            if (chipsSquat) chipsSquat.classList.remove('text-morphing');
+            if (chipsPushup) chipsPushup.classList.remove('text-morphing');
+            if (chipsPullup) chipsPullup.classList.remove('text-morphing');
         }, 90);
     }
 
@@ -443,8 +488,23 @@
             return;
         }
 
-        const primaryLabel = exercise === 'squat' ? 'Rodilla' : 'Codo';
-        const postureLabel = exercise === 'squat' ? 'Torso' : 'Cuerpo';
+        let primaryLabel = 'Codo';
+        let postureLabel = 'Cuerpo';
+        let extensionLabel = 'Extensión';
+
+        if (exercise === 'squat') {
+            primaryLabel = 'Rodilla';
+            postureLabel = 'Torso';
+            extensionLabel = 'Extensión';
+        } else if (exercise === 'pullup') {
+            primaryLabel = 'Codos';
+            postureLabel = 'Inclinación/Kipping';
+            extensionLabel = 'Extensión';
+        } else {
+            primaryLabel = 'Codo';
+            postureLabel = 'Cuerpo';
+            extensionLabel = 'Extensión';
+        }
 
         reps.forEach((rep, idx) => {
             const item = document.createElement('div');
@@ -474,7 +534,7 @@
                 <div class="rep-chips">
                     <span class="metric-chip">${primaryLabel} ${rep.angulo_inflexion}&deg;</span>
                     <span class="metric-chip">${postureLabel} ${rep.angulo_postura}&deg;</span>
-                    <span class="metric-chip">Extensión ${rep.angulo_extension}&deg;</span>
+                    <span class="metric-chip">${extensionLabel} ${rep.angulo_extension}&deg;</span>
                 </div>
                 <div class="rep-reason">${rep.motivo}</div>
             `;
