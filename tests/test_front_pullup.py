@@ -4,11 +4,11 @@ Automated Pytest Test Suite for TrueRep-Front Pull-Up Integration (Milestone 3).
 Target Path: TrueRep-Front/tests/test_front_pullup.py
 
 Coverage:
-1. Template Rendering (GET /ejercicio2/app2-front/ & GET /):
+1. Template Rendering (GET /truerep/ & GET /):
    - Button 'Dominadas (Pull-up)' with data-exercise="pullup"
    - Container '#chips-pullup' and standard metric chips (Barbilla > Barra, Torso <= 30°, Extensión >= 150°)
-   - Root redirect to /ejercicio2/app2-front/
-2. Upload Request Validation (POST /ejercicio2/app2-front/upload):
+   - Root redirect to /truerep/
+2. Upload Request Validation (POST /truerep/upload):
    - Missing 'file' key rejection (HTTP 400)
    - Empty filename rejection (HTTP 400)
    - Disallowed extension rejection (HTTP 400)
@@ -21,8 +21,8 @@ Coverage:
    - Upstream 500/502 error forwarding
    - Upstream network connection/timeout exception handling
 4. Auxiliary Proxy Endpoints:
-   - Status polling proxy (GET /ejercicio2/app2-front/status) with upstream fallback
-   - Display video redirect (GET /ejercicio2/app2-front/display/<filename>)
+   - Status polling proxy (GET /truerep/status) with upstream fallback
+   - Display video redirect (GET /truerep/display/<filename>)
 """
 
 import io
@@ -116,22 +116,22 @@ def mock_ia_pullup_response():
 # ============================================================================
 
 def test_root_redirect(client):
-    """GET / should redirect to /ejercicio2/app2-front/ with 302."""
+    """GET / should redirect to /truerep/ with 302."""
     res = client.get('/')
     assert res.status_code == 302
-    assert '/ejercicio2/app2-front/' in res.headers['Location']
+    assert '/truerep/' in res.headers['Location']
 
 
 def test_index_form_render_status(client):
-    """GET /ejercicio2/app2-front/ returns HTTP 200 OK."""
-    res = client.get('/ejercicio2/app2-front/')
+    """GET /truerep/ returns HTTP 200 OK."""
+    res = client.get('/truerep/')
     assert res.status_code == 200
     assert 'text/html' in res.content_type
 
 
 def test_index_contains_pullup_exercise_card(client):
     """Verifies that Dominadas (Pull-up) option card exists with proper data attribute."""
-    res = client.get('/ejercicio2/app2-front/')
+    res = client.get('/truerep/')
     html = res.get_data(as_text=True)
 
     assert 'data-exercise="pullup"' in html, "Card with data-exercise='pullup' missing in index.html"
@@ -141,7 +141,7 @@ def test_index_contains_pullup_exercise_card(client):
 
 def test_index_contains_chips_pullup_container(client):
     """Verifies that container #chips-pullup is present for dynamic chip updates."""
-    res = client.get('/ejercicio2/app2-front/')
+    res = client.get('/truerep/')
     html = res.get_data(as_text=True)
 
     assert 'id="chips-pullup"' in html, "Container id='chips-pullup' missing in index.html"
@@ -149,7 +149,7 @@ def test_index_contains_chips_pullup_container(client):
 
 def test_index_pullup_chips_standard_thresholds(client):
     """Verifies standard metric chips rendered inside #chips-pullup."""
-    res = client.get('/ejercicio2/app2-front/')
+    res = client.get('/truerep/')
     html = res.get_data(as_text=True)
 
     # Check Chin clearance chip
@@ -167,7 +167,7 @@ def test_index_pullup_chips_standard_thresholds(client):
 
 def test_index_retains_squat_and_pushup_options(client):
     """Verifies backward compatibility: Sentadilla and Flexiones remain present."""
-    res = client.get('/ejercicio2/app2-front/')
+    res = client.get('/truerep/')
     html = res.get_data(as_text=True)
 
     assert 'data-exercise="squat"' in html
@@ -178,7 +178,7 @@ def test_index_retains_squat_and_pushup_options(client):
 
 def test_index_contains_level_selector_buttons(client):
     """Verifies standard and strict level buttons are present."""
-    res = client.get('/ejercicio2/app2-front/')
+    res = client.get('/truerep/')
     html = res.get_data(as_text=True)
 
     assert 'data-level="standard"' in html
@@ -191,7 +191,7 @@ def test_index_contains_level_selector_buttons(client):
 
 def test_upload_missing_file_key(client):
     """POST /upload without 'file' field must return 400 Bad Request."""
-    res = client.post('/ejercicio2/app2-front/upload', data={'exercise': 'pullup'})
+    res = client.post('/truerep/upload', data={'exercise': 'pullup'})
     assert res.status_code == 400
     data = res.get_json()
     assert 'error' in data
@@ -201,7 +201,7 @@ def test_upload_missing_file_key(client):
 def test_upload_empty_filename(client):
     """POST /upload with empty filename must return 400."""
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={
             'file': (io.BytesIO(b'dummy'), ''),
             'exercise': 'pullup'
@@ -217,7 +217,7 @@ def test_upload_empty_filename(client):
 def test_upload_disallowed_extension(client):
     """POST /upload with disallowed file extension (.txt) must return 400."""
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={
             'file': (io.BytesIO(b'plain text'), 'video.txt'),
             'exercise': 'pullup'
@@ -278,7 +278,7 @@ def test_upload_pullup_forwarding_parameters(mock_post, mock_get, client, dummy_
     mock_get.return_value = mock_vid_resp
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={
             'file': (stream, filename, 'video/mp4'),
             'exercise': 'pullup',
@@ -320,7 +320,7 @@ def test_upload_defensive_exercise_fallback(mock_post, mock_get, client, dummy_v
     mock_get.return_value = MagicMock(status_code=404)
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={
             'file': (stream, filename, 'video/mp4'),
             'exercise': 'unsupported_aerobics',
@@ -348,7 +348,7 @@ def test_upload_pullup_strict_forwarding(mock_post, mock_get, client, dummy_vide
     mock_get.return_value = MagicMock(status_code=404)
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={
             'file': (stream, filename, 'video/mp4'),
             'exercise': 'pullup',
@@ -385,7 +385,7 @@ def test_upload_pullup_success_response_contract(mock_post, mock_get, client, du
     )
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={'file': (stream, filename, 'video/mp4'), 'exercise': 'pullup'},
         content_type='multipart/form-data'
     )
@@ -409,7 +409,7 @@ def test_upload_pullup_success_response_contract(mock_post, mock_get, client, du
 
     # Check that video_url was injected pointing to display route
     assert 'video_url' in data
-    assert 'display/pullup_123_skeleton.mp4' in data['video_url']
+    assert 'videos/pullup_123_skeleton.mp4' in data['video_url']
 
     # Verify that local copy of annotated video was saved in upload folder
     saved_video_path = os.path.join(app.config['UPLOAD_FOLDER'], 'pullup_123_skeleton.mp4')
@@ -433,7 +433,7 @@ def test_upload_ia_backend_500_error(mock_post, client, dummy_video):
     )
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={'file': (stream, filename, 'video/mp4'), 'exercise': 'pullup'},
         content_type='multipart/form-data'
     )
@@ -451,7 +451,7 @@ def test_upload_ia_backend_connection_exception(mock_post, client, dummy_video):
     mock_post.side_effect = Exception("Connection refused to 127.0.0.1:7002")
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={'file': (stream, filename, 'video/mp4'), 'exercise': 'pullup'},
         content_type='multipart/form-data'
     )
@@ -479,7 +479,7 @@ def test_status_proxy_success(mock_get, client):
         json=lambda: upstream_status
     )
 
-    res = client.get('/ejercicio2/app2-front/status')
+    res = client.get('/truerep/status')
     assert res.status_code == 200
     data = res.get_json()
     assert data['stage'] == 'rules'
@@ -492,18 +492,36 @@ def test_status_proxy_fallback_on_error(mock_get, client):
     """GET /status returns default fallback when IA status fails to respond."""
     mock_get.side_effect = Exception("Status timeout")
 
-    res = client.get('/ejercicio2/app2-front/status')
+    res = client.get('/truerep/status')
     assert res.status_code == 200
     data = res.get_json()
     assert data['stage'] == 'pose'
     assert data['percent'] == 10
 
 
-def test_display_video_redirect(client):
-    """GET /display/<filename> redirects with 301 to static/uploads/<filename>."""
-    res = client.get('/ejercicio2/app2-front/display/test_output.mp4')
-    assert res.status_code == 301
-    assert '/ejercicio2/app2-front/static/uploads/test_output.mp4' in res.headers['Location']
+def test_serve_video_endpoint(client):
+    """GET /truerep/videos/<filename> serves video file with mimetype video/mp4."""
+    upload_dir = app.config['UPLOAD_FOLDER']
+    os.makedirs(upload_dir, exist_ok=True)
+    test_file = os.path.join(upload_dir, 'test_output.mp4')
+    with open(test_file, 'wb') as f:
+        f.write(b'fake mp4 bytes')
+    try:
+        res = client.get('/truerep/videos/test_output.mp4')
+        assert res.status_code == 200
+        assert res.mimetype == 'video/mp4'
+        assert res.data == b'fake mp4 bytes'
+    finally:
+        if os.path.exists(test_file):
+            os.remove(test_file)
+
+
+def test_legacy_routes_removed_returns_404(client):
+    """Verify that all legacy routes have been completely removed and return 404."""
+    assert client.get('/ejercicio2/app2-front/').status_code == 404
+    assert client.post('/ejercicio2/app2-front/upload').status_code == 404
+    assert client.get('/ejercicio2/app2-front/status').status_code == 404
+    assert client.get('/ejercicio2/app2-front/display/test_output.mp4').status_code == 404
 
 
 def test_cleanup_old_files_utility(tmp_path):

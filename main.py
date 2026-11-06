@@ -3,27 +3,28 @@ import os
 import json
 import hashlib
 import requests
-from flask import request, redirect, url_for, render_template, jsonify
+from flask import request, redirect, url_for, render_template, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from app import app, IA_SERVER, IA_URL, IA_STATUS_URL, IA_VIDEO_URL
 from utils import allowed_file, log_print, cleanup_old_files
 
-API_KEY_HEADER = {'X-API-KEY': 'Secreto_ejercicio2_202608101300'}
+TRUEREP_API_KEY = os.environ.get('TRUEREP_API_KEY', 'truerep_internal_token_v1')
+API_KEY_HEADER = {'X-API-KEY': TRUEREP_API_KEY}
 ALLOWED_EXERCISES = ('squat', 'pushup', 'pullup')
 ALLOWED_LEVELS = ('standard', 'strict')
 
 
 @app.route('/')
 def root_redirect():
-    return redirect(url_for('index_form'))
+    return redirect(url_for('index_form'), code=302)
 
 
-@app.route('/ejercicio2/app2-front/')
+@app.route('/truerep/')
 def index_form():
     return render_template('index.html')
 
 
-@app.route('/ejercicio2/app2-front/upload', methods=['POST'])
+@app.route('/truerep/upload', methods=['POST'])
 def upload_video():
     try:
         if 'file' not in request.files:
@@ -83,7 +84,7 @@ def upload_video():
                 local_vid_path = os.path.join(base_dir, processed_name)
                 with open(local_vid_path, 'wb') as vf:
                     vf.write(vid_resp.content)
-                api_json['video_url'] = url_for('display_video', filename=processed_name)
+                api_json['video_url'] = url_for('serve_video', filename=processed_name)
 
         cleanup_old_files(base_dir, max_files=10)
         return jsonify(api_json)
@@ -93,7 +94,7 @@ def upload_video():
         return jsonify({'error': error_msg}), 500
 
 
-@app.route('/ejercicio2/app2-front/status', methods=['GET'])
+@app.route('/truerep/status', methods=['GET'])
 def check_status():
     try:
         resp = requests.get(IA_SERVER + IA_STATUS_URL, timeout=2)
@@ -104,9 +105,11 @@ def check_status():
     return jsonify({'stage': 'pose', 'percent': 10, 'message': 'Procesando video...'})
 
 
-@app.route('/ejercicio2/app2-front/display/<filename>')
-def display_video(filename):
-    return redirect(url_for('static', filename='uploads/' + filename), code=301)
+@app.route('/truerep/videos/<filename>')
+def serve_video(filename):
+    safe_filename = secure_filename(filename)
+    abs_folder = os.path.abspath(app.config['UPLOAD_FOLDER'])
+    return send_from_directory(abs_folder, safe_filename, mimetype='video/mp4', conditional=True)
 
 
 if __name__ == "__main__":

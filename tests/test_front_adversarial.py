@@ -116,7 +116,7 @@ def test_adversarial_exercise_sanitization_fallback(mock_post, client, sample_vi
     )
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={
             'file': (stream, filename, 'video/mp4'),
             'exercise': hostile_exercise,
@@ -151,7 +151,7 @@ def test_adversarial_level_sanitization_fallback(mock_post, client, sample_video
     )
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={
             'file': (stream, filename, 'video/mp4'),
             'exercise': 'pullup',
@@ -175,7 +175,7 @@ def test_adversarial_extraneous_form_parameters_ignored(mock_post, client, sampl
     )
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={
             'file': (stream, filename, 'video/mp4'),
             'exercise': 'pullup',
@@ -198,14 +198,14 @@ def test_adversarial_extraneous_form_parameters_ignored(mock_post, client, sampl
 def test_adversarial_non_multipart_content_type(client):
     """POST /upload with application/json or empty body must return 400 Bad Request."""
     res1 = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data=json.dumps({'exercise': 'pullup'}),
         content_type='application/json'
     )
     assert res1.status_code == 400
     assert 'error' in res1.get_json()
 
-    res2 = client.post('/ejercicio2/app2-front/upload', data='', content_type='text/plain')
+    res2 = client.post('/truerep/upload', data='', content_type='text/plain')
     assert res2.status_code == 400
     assert 'error' in res2.get_json()
 
@@ -224,7 +224,7 @@ def test_adversarial_upload_zero_byte_file(mock_post, client, base_ia_success_re
 
     zero_stream = io.BytesIO(b"")
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={
             'file': (zero_stream, 'empty_test.mp4'),
             'exercise': 'pullup'
@@ -249,7 +249,7 @@ def test_adversarial_upload_corrupted_binary_bytes(mock_post, client, base_ia_su
 
     garbage_bytes = b"\xff\xfe\x00\x01\xde\xad\xbe\xef" * 128
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={
             'file': (io.BytesIO(garbage_bytes), 'corrupted.mp4'),
             'exercise': 'pullup'
@@ -276,7 +276,7 @@ def test_adversarial_upload_corrupted_binary_bytes(mock_post, client, base_ia_su
 def test_adversarial_upload_disallowed_extensions_rejected(client, hostile_filename):
     """Files with disallowed trailing extensions or no extensions must be rejected with HTTP 400."""
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={
             'file': (io.BytesIO(b"testcontent"), hostile_filename),
             'exercise': 'pullup'
@@ -308,7 +308,7 @@ def test_adversarial_upload_case_insensitive_valid_extensions(mock_post, client,
     )
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={
             'file': (io.BytesIO(b"dummy_video_bytes"), valid_extension_filename),
             'exercise': 'pullup'
@@ -328,7 +328,7 @@ def test_adversarial_upload_path_traversal_filename_sanitized(mock_post, client,
 
     traversal_name = "../../../../etc/passwd.mp4"
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={
             'file': (io.BytesIO(b"traversal_test"), traversal_name),
             'exercise': 'pullup'
@@ -353,7 +353,7 @@ def test_adversarial_upload_max_content_length_limit(client):
     app.config['MAX_CONTENT_LENGTH'] = 100
     try:
         res = client.post(
-            '/ejercicio2/app2-front/upload',
+            '/truerep/upload',
             data={'file': (io.BytesIO(b"X" * 200), "oversized.mp4")},
             content_type='multipart/form-data'
         )
@@ -380,7 +380,7 @@ def test_adversarial_upstream_http_status_errors(mock_post, client, sample_video
     )
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={'file': (stream, filename, 'video/mp4'), 'exercise': 'pullup'},
         content_type='multipart/form-data'
     )
@@ -404,7 +404,7 @@ def test_adversarial_upstream_network_exceptions(mock_post, client, sample_video
     mock_post.side_effect = exception_class(msg)
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={'file': (stream, filename, 'video/mp4'), 'exercise': 'pullup'},
         content_type='multipart/form-data'
     )
@@ -432,7 +432,7 @@ def test_adversarial_upstream_malformed_json_response(mock_post, client, sample_
     )
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={'file': (stream, filename, 'video/mp4'), 'exercise': 'pullup'},
         content_type='multipart/form-data'
     )
@@ -466,7 +466,7 @@ def test_adversarial_upstream_empty_repeticiones_list(mock_post, client, sample_
     )
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={'file': (stream, filename, 'video/mp4'), 'exercise': 'pullup'},
         content_type='multipart/form-data'
     )
@@ -502,7 +502,7 @@ def test_adversarial_upstream_missing_metric_fields_in_reps(mock_post, client, s
     )
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={'file': (stream, filename, 'video/mp4'), 'exercise': 'pullup'},
         content_type='multipart/form-data'
     )
@@ -543,7 +543,7 @@ def test_adversarial_upstream_extreme_metric_values(mock_post, client, sample_vi
     )
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={'file': (stream, filename, 'video/mp4'), 'exercise': 'pullup'},
         content_type='multipart/form-data'
     )
@@ -570,7 +570,7 @@ def test_adversarial_upstream_video_download_failure_resilience(mock_post, mock_
     mock_get.return_value = MagicMock(status_code=404)
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={'file': (stream, filename, 'video/mp4'), 'exercise': 'pullup'},
         content_type='multipart/form-data'
     )
@@ -596,7 +596,7 @@ def test_adversarial_upstream_video_download_timeout_handled(mock_post, mock_get
     mock_get.side_effect = requests.exceptions.ReadTimeout("Video download timed out")
 
     res = client.post(
-        '/ejercicio2/app2-front/upload',
+        '/truerep/upload',
         data={'file': (stream, filename, 'video/mp4'), 'exercise': 'pullup'},
         content_type='multipart/form-data'
     )
@@ -634,7 +634,7 @@ def test_adversarial_jinja2_template_renders_with_unexpected_kwargs(client):
 
 def test_adversarial_jinja2_dom_elements_present_for_milestone_3(client):
     """Verifies all required DOM nodes, IDs, and attributes exist for pullup workflow."""
-    res = client.get('/ejercicio2/app2-front/')
+    res = client.get('/truerep/')
     assert res.status_code == 200
     html = res.get_data(as_text=True)
 
@@ -774,7 +774,7 @@ def test_adversarial_status_endpoint_fallback(mock_get, client, status_failure):
     """GET /status returns default fallback state on any upstream status error."""
     mock_get.return_value = status_failure
 
-    res = client.get('/ejercicio2/app2-front/status')
+    res = client.get('/truerep/status')
     assert res.status_code == 200
     data = res.get_json()
     assert data['stage'] == 'pose'
@@ -784,7 +784,7 @@ def test_adversarial_status_endpoint_fallback(mock_get, client, status_failure):
 
 def test_adversarial_display_route_directory_traversal_rejection(client):
     """GET /display/<traversal> must be rejected with 404 by Flask's url routing."""
-    res = client.get('/ejercicio2/app2-front/display/..%2F..%2Fetc%2Fpasswd')
+    res = client.get('/truerep/videos/..%2F..%2Fetc%2Fpasswd')
     assert res.status_code == 404
 
 
